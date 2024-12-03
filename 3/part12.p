@@ -15,12 +15,10 @@ process_match(Match, Acc, New) :-
         extract_type(Full_Text, Type),
         process_match(Type, Match, Acc, New).
 
-process_match("mul", _Match, {mode: "don't", sum: Acc_Sum}, {mode: "don't", sum: Acc_Sum}).
-process_match("mul", Match, {mode: "do", sum: Acc_Sum}, {mode: "do", sum: New_Sum}) :-
-        calculate_mul(Match, Product), New_Sum is Acc_Sum + Product.
+process_match("mul", Match, {mode: M, sum: Acc_Sum}, {mode: M, sum: New_Sum}) :-
+        M == "do" -> calculate_mul(Match, Product), New_Sum is Acc_Sum + Product ; New_Sum = Acc_Sum.
 
-process_match("do", _Match, {mode: _M, sum: Acc_Sum}, {mode: "do", sum: Acc_Sum}).
-process_match("don't", _Match, {mode: _M, sum: Acc_Sum}, {mode: "don't", sum: Acc_Sum}).
+process_match(T, _Match, {mode: _M, sum: Acc_Sum}, {mode: T, sum: Acc_Sum}) :- T == "do" ; T == "don't".
 
 
 main :-
