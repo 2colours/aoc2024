@@ -12,6 +12,7 @@ safe_values([First, Second | Rest], Direction) :-
 main :-
         csv_read_file("input.txt", Rows, [separator(0' ), match_arity(false)]),
         maplist([Row, List]>>(Row =.. [row | List]), Rows, Rows_Lists),
-        include([Row]>>(select(_V, Row, Relaxed_Row), safe_values(Relaxed_Row, any)), Rows_Lists, Safe_Rows),
-        length(Safe_Rows, Solution),
-        write(Solution).
+        include([Row]>>safe_values(Row, any), Rows_Lists, Safe_Rows),
+        include([Row]>>(select(_V, Row, Relaxed_Row), safe_values(Relaxed_Row, any)), Rows_Lists, Safe_Rows_Relaxed),
+        maplist(length, [Safe_Rows, Safe_Rows_Relaxed], Solutions),
+        format("~d ~d", Solutions).
