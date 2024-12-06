@@ -43,9 +43,9 @@ main :-
                         relevant_rules(Sequence, Rules, Relevant_Rules),
                         maplist({Sequence}/[Rule]>>rule_check(Sequence, Rule), Relevant_Rules)
                 ), Sequences, Valid_Sequences, Invalid_Sequences),
-        maplist(middle, Valid_Sequences, Middle_Values1),
-        sum_list(Middle_Values1, Solution1),
         maplist({Rules}/[Sequence, Fixed_Sequence]>>fixed_sequence_order(Sequence, Rules, Fixed_Sequence), Invalid_Sequences, Fixed_Sequences),
-        maplist(middle, Fixed_Sequences, Middle_Values2),
-        sum_list(Middle_Values2, Solution2),
-        format("~d ~d", [Solution1, Solution2]).
+        maplist([Sequence, Solution]>>(
+                maplist(middle, Sequence, Middle_Values),
+                sum_list(Middle_Values, Solution)
+        ), [Valid_Sequences, Fixed_Sequences], Solutions),
+        format("~d ~d", Solutions).
