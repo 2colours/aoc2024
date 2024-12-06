@@ -17,19 +17,35 @@ middle(List, Value) :-
         M is ceiling(L / 2),
         nth1(M, List, Value).
 
-rule_check_lax(Sequence, [First, Second]) :- % First comes before Second semantics
-        (
-                nth1(First_Index, Sequence, First), nth1(Second_Index, Sequence, Second) ->
-                        First_Index < Second_Index
-                ; true
-        ).
+rule_check(Sequence, [First, Second]) :- % First comes before Second semantics
+        nth1(First_Index, Sequence, First),
+        nth1(Second_Index, Sequence, Second),
+        First_Index < Second_Index.
 
-valid_sequences_lax(All_Sequences, Rules, Valid_Sequences) :-
-        include([Sequence]>>maplist({Sequence}/[Rule]>>rule_check_lax(Sequence, Rule), Rules), All_Sequences, Valid_Sequences).
+relevant_rule(Sequence, [First, Second]) :-
+        member(First, Sequence),
+        member(Second, Sequence).
+
+relevant_rules(Sequence, Rules, Relevant) :-
+        include([Rule]>>relevant_rule(Sequence, Rule), Rules, Relevant).
+
+rule_edge([First, Second], First-Second).
+
+fixed_sequence_order(Sequence, Rules, Fixed_Sequence) :-
+        relevant_rules(Sequence, Rules, Relevant_Rules),
+        maplist(rule_edge, Relevant_Rules, Edges),
+        vertices_edges_to_ugraph(Sequence, Edges, Graph),
+        top_sort(Graph, Fixed_Sequence).
 
 main :-
         process_input("input.txt", Rules, Sequences),
-        valid_sequences_lax(Sequences, Rules, Valid_Sequences1),
-        maplist(middle, Valid_Sequences1, Middle_Values1),
+        partition({Rules}/[Sequence]>>(
+                        relevant_rules(Sequence, Rules, Relevant_Rules),
+                        maplist({Sequence}/[Rule]>>rule_check(Sequence, Rule), Relevant_Rules)
+                ), Sequences, Valid_Sequences, Invalid_Sequences),
+        maplist(middle, Valid_Sequences, Middle_Values1),
         sum_list(Middle_Values1, Solution1),
-        write(Solution1).
+        maplist({Rules}/[Sequence, Fixed_Sequence]>>fixed_sequence_order(Sequence, Rules, Fixed_Sequence), Invalid_Sequences, Fixed_Sequences),
+        maplist(middle, Fixed_Sequences, Middle_Values2),
+        sum_list(Middle_Values2, Solution2),
+        format("~d ~d", [Solution1, Solution2]).
