@@ -1,7 +1,9 @@
 #!/usr/bin/env raku
 use v6.e.PREVIEW;
+use ValueList;
 
 enum Direction<Left Right Up Down>;
+enum PathResult<RunsOut Loops Continues>;
 
 multi rotate(Left --> Up) {}
 multi rotate(Up --> Right) {}
@@ -28,29 +30,45 @@ multi path-indices(($height, $), ($row, $column), Down) {
 	@rows X $column
 }
 
-sub walk-path(@table, $cursor is rw, $direction is rw --> Bool) {
-	my $runs-out = True;
+sub walk-path(@table is readonly, $cursor is rw, $direction is rw, %walked --> PathResult) {
+	my $result = RunsOut;
 	my $dimensions = (@table.elems, @table[0].elems);
 	for path-indices($dimensions, $cursor, $direction) -> $position {
 		if @table[||$position] eq '#' {
-			$runs-out = False;
+			$result = Continues;
 			last;
 		}
 		$cursor = $position;
-		@table[||$cursor] = 'X';
+		if %walked{$direction}{ValueList($position)} {
+			return Loops;
+		} else {
+			%walked{$direction}{ValueList($position)} = True; # Horrible design choice of https://docs.raku.org/type/SetHash#method_set forces me to use this hack
+		}
 	}
 	$direction.=&rotate;
-	$runs-out
+	$result
 }
+
+sub simulate-traversal(@table, $starting-pos, $starting-direction, :$loop-detection-only) {
+	my $cursor = $starting-pos;
+	my $direction = $starting-direction;
+	my %walked = ($_ => SetHash.new for Direction.keys);
+	my $walk-result;
+	repeat {
+		$walk-result = walk-path(@table, $cursor, $direction, %walked);
+	} until $walk-result != Continues;
+	$loop-detection-only ?? $walk-result == Loops !! %walked.values.reduce(&[(|)])
+}	
 
 my @table = 'input.txt'.IO.lines.map(*.comb.Array);
 my $starting-pos = @table.map(*.first(:k, '^')).first(*.defined, :kv);
-@table[||$starting-pos] = '.';
-my $cursor = $starting-pos;
-my $direction = Up;
-say "Starting spot: $cursor";
-say "Starting direction: $direction";
-until walk-path(@table, $cursor, $direction) {
+my $walked-fields = simulate-traversal(@table, $starting-pos, Up);
+say $walked-fields.elems;
+my $fix-count = 0;
+for $walked-fields.keys {
+	next if $_ eqv ValueList($starting-pos);
+	@table[||List($_)] = '#';
+	$fix-count++ if simulate-traversal(@table, $starting-pos, Up, :loop-detection-only);
+	@table[||List($_)] = '.';
 }
-@table>>.grep('X').sum.say
-
+say "$fix-count";
