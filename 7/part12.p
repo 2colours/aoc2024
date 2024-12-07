@@ -10,16 +10,19 @@ process_file(File_Name, Equation_Pairs) :-
                 atom_number(Goal_Atom, Goal_Result)
                 ), Rows, Equation_Pairs).
 
-arithmetic_expr(A, B, A+B).
-arithmetic_expr(A, B, A*B).
+evaluated_operation(Op1, Op2, Result, _Part) :- Result is Op1 * Op2 ; Result is Op1 + Op2.
+evaluated_operation(Op1, Op2, Result, part2) :- atom_concat(Op1, Op2, Result_Atom), atom_number(Result_Atom, Result).
 
-arithmetic_test(Expected, Acc, []) :- Expected = Acc.
-arithmetic_test(Expected, Acc, [VH|VT]) :- Acc =< Expected, arithmetic_expr(Acc, VH, Expr), New_Acc is Expr, arithmetic_test(Expected, New_Acc, VT). % Acc =< Expected is for optimization
-arithmetic_test(Expected, [VH|VT]) :- arithmetic_test(Expected, VH, VT).
+arithmetic_test(Expected, Acc, [], _Part) :- Expected = Acc.
+arithmetic_test(Expected, Acc, [VH|VT], Part) :- Acc =< Expected, evaluated_operation(Acc, VH, New_Acc, Part), arithmetic_test(Expected, New_Acc, VT, Part). % Acc =< Expected is for optimization
+arithmetic_test(Expected, [VH|VT], Part) :- arithmetic_test(Expected, VH, VT, Part).
 
 main :-
         process_file("input.txt", Equation_Pairs),
-        include([Target_Value-Operands]>>arithmetic_test(Target_Value, Operands), Equation_Pairs, Good_Equations),
-        maplist([Target_Value, Target_Value-Operands]>>true, Good_Values, Good_Equations),
-        sum_list(Good_Values, Solution1),
-        print(Solution1).
+        maplist([Part, Solution]>>(
+                include([Target_Value-Operands]>>arithmetic_test(Target_Value, Operands, Part), Equation_Pairs, Good_Equations),
+                maplist([Target_Value, Target_Value-Operands]>>true, Good_Values, Good_Equations),
+                sum_list(Good_Values, Solution)
+        ), [part1, part2], Solutions),
+        format("~d ~d", Solutions),
+        halt.
