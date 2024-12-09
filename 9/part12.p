@@ -16,8 +16,7 @@ read_input(File_Name, Filled_Blocks, Empty_Blocks) :-
         foldl([Char, Before, After]>>(number_chars(N, [Char]), accumulate_content(N, Before, After)), Content_Chars_Trimmed, []-[]-0-filled-0, Filled_Blocks-Empty_Blocks-_Cursor-_Next_Type-_Next_ID).
         
 
-move_filled_block(_Part, Filled_Block_To_Move, Filled_Blocks_Before-[], [Filled_Block_To_Move|Filled_Blocks_Before]-[]).
-
+move_filled_block(part1, Filled_Block_To_Move, Filled_Blocks_Before-[], [Filled_Block_To_Move|Filled_Blocks_Before]-[]).
 move_filled_block(part1, FStart-(FValue-FLength), Filled_Blocks_Before-[EStart-ELength|ERest], Filled_Blocks_After-Empty_Blocks_After) :-
         (FStart < EStart ->
                 Empty_Blocks_After = [EStart-ELength|ERest],
@@ -33,16 +32,25 @@ move_filled_block(part1, FStart-(FValue-FLength), Filled_Blocks_Before-[EStart-E
                 Empty_Blocks_After = ERest,
                 Filled_Blocks_After = [EStart-(FValue-FLength)|Filled_Blocks_Before]
         ;
-        true -> % doesn't fit into current slot at all - fill it and carry on with the other slots and the leftover to fill
+        true -> % does not fit into current slot at all - fill it and carry on with the other slots and the leftover to fill
                 FStart_After is FStart + ELength,
                 FLength_After is FLength - ELength,
                 move_filled_block(part1, FStart_After-(FValue-FLength_After), [EStart-(FValue-ELength)|Filled_Blocks_Before]-ERest, Filled_Blocks_After-Empty_Blocks_After)
         ).
 
 move_filled_block(part2, FStart-(FValue-FLength), Filled_Blocks_Before-Empty_Blocks_Before, [Filled_Block_Moved|Filled_Blocks_Before]-Empty_Blocks_After) :-
-        (select(EStart-ELength, Empty_Blocks_Before, Empty_Blocks_After), FLength =< ELength ->
-                Filled_Block_Moved = EStart-(FValue-FLength)
+        (nth0(Index, Empty_Blocks_Before, EStart-ELength, Empty_Blocks_Rest), FLength =< ELength, EStart < FStart ->
+                Filled_Block_Moved = EStart-(FValue-FLength),
+                (FLength = ELength -> % perfect fit: the empty block simply disappears
+                        Empty_Blocks_After = Empty_Blocks_Rest
+                ;
+                true -> % the block remains but slides to the right and shortens just as much
+                        ELength_After is ELength - FLength,
+                        EStart_After is EStart + FLength,
+                        nth0(Index, Empty_Blocks_After, EStart_After-ELength_After, Empty_Blocks_Rest)
+                )
         ;
+        true ->
                 Empty_Blocks_After = Empty_Blocks_Before,
                 Filled_Block_Moved = FStart-(FValue-FLength)
         ).
