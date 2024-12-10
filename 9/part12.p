@@ -66,9 +66,10 @@ calculate_checksum(Filled_Blocks, Checksum) :-
         foldl(add_product_filled_block, Filled_Blocks, 0, Checksum).
 
 main :-
-        read_input("input.txt", Filled_Blocks, Empty_Blocks), % make sure trailing empty blocks are dropped!
+        read_input("input.txt", Filled_Blocks, Empty_Blocks),
+        include([_Cursor-Length]>>(Length > 0), Empty_Blocks, Empty_Blocks_Relevant),
         sort(0, @>, Filled_Blocks, Filled_Blocks_Desc),
-        sort(0, @<, Empty_Blocks, Empty_Blocks_Asc),
+        sort(0, @<, Empty_Blocks_Relevant, Empty_Blocks_Asc),
         maplist([Part, Solution]>>(
                 compress_blocks(Part, Filled_Blocks_Desc, Empty_Blocks_Asc, Compressed_Filled_Blocks),
                 calculate_checksum(Compressed_Filled_Blocks, Solution)
