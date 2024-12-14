@@ -57,7 +57,6 @@ product(Nums, Prod) :-
 
 part1(All_Robots, Dimensions, Solution) :-
         positions_after_steps(All_Robots, Dimensions, 100, All_Positions),
-        draw(Dimensions, All_Positions),
         positions_quadrants(Dimensions, All_Positions, Quadrants, [horizontal, vertical]),
         assoc_to_values(Quadrants, Quadrant_Counts),
         product(Quadrant_Counts, Solution).
@@ -68,13 +67,22 @@ part2(All_Robots, Dimensions, Solution) :-
         indomain(Steps),
         positions_after_steps(All_Robots, Dimensions, Steps, All_Positions),
         reasonable_candidate(All_Positions),
-        format("After ~d steps:\n", [Steps]),
         draw(Dimensions, All_Positions),
         Solution = Steps.
 
-reasonable_candidate(Positions) :- %there is a frame no smaller than 10x10... I hope the author has a nice place in hell
-        member([X1, Y1], Positions),
-        forall(between(1, 9, Offset), (Y_Offset is Y1 + Offset, X_Offset is X1 + Offset, memberchk([X1, Y_Offset], Positions), memberchk([X_Offset, Y1], Positions))).
+reasonable_candidate(Positions) :- % the widest of the tree shall be no shorter than 11 and there shall be at least two rows over it that have at least 5 pixels, center aligned
+        member([Wide_Middle_X, Wide_Middle_Y], Positions),
+        forall(between(1, 5, Offset_Abs), (
+                Wide_Offset_Left is Wide_Middle_X - Offset_Abs,
+                Wide_Offset_Right is Wide_Middle_X + Offset_Abs,
+                memberchk([Wide_Offset_Left, Wide_Middle_Y], Positions),
+                memberchk([Wide_Offset_Right, Wide_Middle_Y], Positions)
+        )),
+        forall((between(-2, 2, Offset_X), between(-2, -1, Offset_Y)), (
+                Checked_X is Wide_Middle_X + Offset_X,
+                Checked_Y is Wide_Middle_Y + Offset_Y,
+                memberchk([Checked_X, Checked_Y], Positions)
+        )).
 
 main :-
         phrase_from_file(day14_format(All_Robots), "input.txt"),
